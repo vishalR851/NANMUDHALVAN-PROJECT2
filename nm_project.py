@@ -93,11 +93,5 @@ if uploaded_file:
     best_model = models[best_model_name]
     st.success(f"✅ Best Model: {best_model_name} with accuracy {result_df.loc[best_model_name, 'Accuracy']:.2f}")
 
-    # SHAP Analysis (Optional)
-    st.subheader("🔍 SHAP Feature Importance")
-    if best_model_name == 'XGBoost':  # SHAP works best with XGBoost
-        explainer = shap.Explainer(best_model)
-        shap_values = explainer(X_test_scaled)
-        shap.summary_plot(shap_values, X_test)
-        st.pyplot()
+   
 

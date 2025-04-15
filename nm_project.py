@@ -7,7 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1Jb87APWawphcDjGovWl_sMra7Du9w-h-
 """
 
-!pip install streamlit scikit-learn pandas xgboost shap matplotlib pandas-profiling streamlit-pandas-profiling pyngrok
+
 
 import streamlit as st
 import pandas as pd

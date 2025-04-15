@@ -101,16 +101,3 @@ if uploaded_file:
         shap.summary_plot(shap_values, X_test)
         st.pyplot()
 
-!ngrok config add-authtoken 2u72IeZvUkS7VVpI32hd0zOWZH4_6CbaRrLLKayoy8dtQFZVs
-
-!pkill streamlit
-!streamlit run app.py &>/content/logs.txt &
-
-from pyngrok import ngrok
-public_url = ngrok.connect(addr="8501", proto="http")
-print("Streamlit URL:", public_url)
-
-with open("requirements.txt", "w") as f:
-    f.write("streamlit\npandas\nnumpy\nscikit-learn\nplotly")
-from google.colab import files
-files.download("requirements.txt")

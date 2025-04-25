@@ -34,19 +34,7 @@ if option == "Upload Dataset":
         # Check the column names for debugging
         st.write("Columns in the dataset:", df.columns)
 
-        # Check if 'Exited' column exists
-        if 'Exited' not in df.columns:
-            st.error("'Exited' column is missing from the dataset.")
-        else:
-            # Data Preprocessing
-            drop_cols = ['RowNumber', 'CustomerId', 'Surname']
-            df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True)
-
-            # Label Encoding for categorical features
-            le = LabelEncoder()
-            for col in ['Geography', 'Gender']:
-                if col in df.columns:
-                    df[col] = le.fit_transform(df[col])
+        
 
             # Correlation heatmap
             st.subheader("📊 Feature Correlation Heatmap")

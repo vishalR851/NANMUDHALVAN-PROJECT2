@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Set up Streamlit page configuration
-st.set_page_config(page_title=Customer Churn Predictor, layout="wide")
+st.set_page_config(page_title="Customer Churn Predictor", layout="wide")
 
 # Sidebar Title and file uploader
 st.sidebar.title("Customer Churn Prediction")

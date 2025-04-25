@@ -13,6 +13,9 @@ from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 import shap
 
+# Set up Streamlit page configuration (This must be the first command in your app)
+st.set_page_config(page_title="Customer Churn Predictor", layout="wide")
+
 # Custom CSS for styling the Streamlit app
 st.markdown("""
     <style>
@@ -51,9 +54,6 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-
-# Set up Streamlit page configuration
-st.set_page_config(page_title="Customer Churn Predictor", layout="wide")
 
 # Title with emoji
 st.markdown('<p class="title">📉 **Customer Churn Prediction using Machine Learning** 👑</p>', unsafe_allow_html=True)

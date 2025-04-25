@@ -16,19 +16,17 @@ import seaborn as sns
 # Set up Streamlit page configuration
 st.set_page_config(page_title="Customer Churn Predictor", layout="wide")
 
-# Title with emoji
-st.title("📉 **Customer Churn Prediction using Machine Learning**")
-
-# Upload CSV dataset
-uploaded_file = st.file_uploader("Choose a dataset", type=["csv"])
+# Sidebar: Title and file uploader
+st.sidebar.title("Customer Churn Prediction")
+uploaded_file = st.sidebar.file_uploader("Choose a dataset", type=["csv"])
 
 if uploaded_file is not None:
     # Load data
     df = pd.read_csv(uploaded_file)
 
-    # Display dataset
-    st.subheader("Dataset")
-    st.write(df.head())
+    # Sidebar: Dataset preview
+    st.sidebar.subheader("Dataset Preview")
+    st.sidebar.write(df.head())
 
     # Drop unnecessary columns
     drop_cols = ['RowNumber', 'CustomerId', 'Surname']
@@ -39,7 +37,7 @@ if uploaded_file is not None:
     for col in ['Geography', 'Gender']:
         df[col] = le.fit_transform(df[col])
 
-    # Display the correlation heatmap
+    # Display the correlation heatmap in the main area
     st.subheader("🔍 Feature Correlation Heatmap")
     plt.figure(figsize=(12,8))
     corr_matrix = df.corr()
@@ -84,11 +82,11 @@ if uploaded_file is not None:
             'ROC AUC': roc_auc
         }
 
-    # Display model evaluation results
+    # Sidebar: Model evaluation results
+    st.sidebar.subheader("📊 Model Evaluation Results")
     result_df = pd.DataFrame(model_results).T.sort_values(by='Accuracy', ascending=False)
     result_df = result_df.round(3)
-    st.subheader("📊 Model Evaluation Results")
-    st.write(result_df)
+    st.sidebar.write(result_df)
 
     # SHAP explainability for XGBoost
     st.subheader("🔍 SHAP Explainability for XGBoost")

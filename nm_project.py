@@ -56,7 +56,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title with emoji
-st.markdown('<p class="title">📉 **Customer Churn Prediction using Machine Learning** 👑</p>', unsafe_allow_html=True)
+st.markdown('<p class="title">📉Customer Churn Prediction using Machine Learning</p>', unsafe_allow_html=True)
 
 # Sidebar with custom header
 st.sidebar.header("🛠️ Application Menu")

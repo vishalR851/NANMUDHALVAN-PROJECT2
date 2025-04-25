@@ -78,17 +78,16 @@ if uploaded_file is not None:
     result_df = pd.DataFrame(model_results).T.round(3).sort_values(by="Accuracy", ascending=False)
     st.dataframe(result_df)
 
-    # SHAP explainability for XGBoost
-    st.subheader("🔍 SHAP Explainability for XGBoost")
-    with st.spinner("Generating SHAP plots..."):
-        explainer = shap.Explainer(models['XGBoost'], X_train_scaled)
-        shap_values = explainer(X_test_scaled[:100])
+   # SHAP explainability for XGBoost
+st.subheader("🔍 SHAP Explainability for XGBoost")
+with st.spinner("Generating SHAP plots..."):
+    explainer = shap.Explainer(models['XGBoost'], X_train_scaled)
+    shap_values = explainer(X_test_scaled[:100])
 
-        # Beeswarm plot
-        st.set_option('deprecation.showPyplotGlobalUse', False)
-        shap.plots.beeswarm(shap_values, show=False)
-        st.pyplot()
+    # Beeswarm plot
+    shap.plots.beeswarm(shap_values, show=False)
+    st.pyplot()
 
-        # Bar plot
-        shap.plots.bar(shap_values, show=False)
-        st.pyplot()
+    # Bar plot
+    shap.plots.bar(shap_values, show=False)
+    st.pyplot()

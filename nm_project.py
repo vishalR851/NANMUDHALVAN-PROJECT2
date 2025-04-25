@@ -37,9 +37,9 @@ if uploaded_file is not None:
 
     # Correlation heatmap
     st.subheader("Correlation Heatmap")
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 6))  # Create figure and axis
     sns.heatmap(df.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
-    st.pyplot(fig)
+    st.pyplot(fig)  # Pass the figure to st.pyplot()
 
     # Prepare features and target
     X = df.drop('Exited', axis=1)
@@ -51,9 +51,9 @@ if uploaded_file is not None:
 
     # Define models
     models = {
-        'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
-        'Logistic Regression': LogisticRegression(max_iter=1000),
-        'XGBoost': XGBClassifier(eval_metric='logloss'),
+        'Random Forest': RandomForestClassifier(n_estimators=50, random_state=42),  # Reduced n_estimators for speed
+        'Logistic Regression': LogisticRegression(max_iter=500),
+        'XGBoost': XGBClassifier(eval_metric='logloss', n_estimators=50),
         'SVM': SVC(probability=True, random_state=42),
         'KNN': KNeighborsClassifier()
     }
@@ -68,6 +68,7 @@ if uploaded_file is not None:
         precision = precision_score(y_test, y_pred)
         recall = recall_score(y_test, y_pred)
         roc_auc = roc_auc_score(y_test, model.predict_proba(X_test_scaled)[:, 1])
+
         model_results[name] = {
             'Accuracy': accuracy,
             'F1 Score': f1,
@@ -78,7 +79,6 @@ if uploaded_file is not None:
 
     # Display results in a dataframe
     result_df = pd.DataFrame(model_results).T.round(3).sort_values(by="Accuracy", ascending=False)
-    st.subheader("Model Performance Comparison")
     st.dataframe(result_df)
 
     # SHAP explainability for XGBoost
@@ -88,10 +88,11 @@ if uploaded_file is not None:
         shap_values = explainer(X_test_scaled[:100])
 
         # Beeswarm plot
+        fig = plt.figure()
         shap.plots.beeswarm(shap_values, show=False)
-        st.pyplot()
+        st.pyplot(fig)  # Pass the figure to st.pyplot()
 
         # Bar plot
+        fig = plt.figure()
         shap.plots.bar(shap_values, show=False)
-        st.pyplot()
-
+        st.pyplot(fig)  # Pass the figure to st.pyplot()

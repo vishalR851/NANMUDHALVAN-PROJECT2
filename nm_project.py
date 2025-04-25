@@ -15,7 +15,7 @@ import shap
 
 # Set up Streamlit page configuration
 st.set_page_config(page_title="Customer Churn Predictor", layout="wide")
-st.title("📉 **Customer Churn Prediction using Machine Learning** 👑")
+st.title("📉 Customer Churn Prediction using Machine Learning")
 
 # Sidebar
 st.sidebar.header("🛠️ Application Menu")

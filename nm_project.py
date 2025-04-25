@@ -30,33 +30,29 @@ if option == "Upload Dataset":
         df = pd.read_csv(uploaded_file)
         st.subheader("Raw Data")
         st.write(df.head())
-        st.write(df.columns)  # Add this line to debug and view column names
 
-        # Data Preprocessing
-        drop_cols = ['RowNumber', 'CustomerId', 'Surname']
-        df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True)
+        # Check the column names for debugging
+        st.write("Columns in the dataset:", df.columns)
 
-        # Check if 'Geography' and 'Gender' columns exist
-        if 'Geography' in df.columns and 'Gender' in df.columns:
-            le = LabelEncoder()
-            df['Geography'] = le.fit_transform(df['Geography'])
-            df['Gender'] = le.fit_transform(df['Gender'])
+        # Check if 'Exited' column exists
+        if 'Exited' not in df.columns:
+            st.error("'Exited' column is missing from the dataset.")
         else:
-            st.warning("'Geography' or 'Gender' columns are missing from the dataset.")
+            # Data Preprocessing
+            drop_cols = ['RowNumber', 'CustomerId', 'Surname']
+            df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True)
 
-        # Correlation heatmap
-        st.subheader("📊 Feature Correlation Heatmap")
+            # Label Encoding for categorical features
+            le = LabelEncoder()
+            for col in ['Geography', 'Gender']:
+                if col in df.columns:
+                    df[col] = le.fit_transform(df[col])
 
-        # Filter out non-numeric columns
-        df_numeric = df.select_dtypes(include=[np.number])
-
-        # Handle missing values if any (drop rows with NaN values for correlation)
-        df_numeric = df_numeric.dropna()
-
-        # Generate the correlation matrix
-        fig, ax = plt.subplots(figsize=(12, 8))
-        sns.heatmap(df_numeric.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
-        st.pyplot(fig)
+            # Correlation heatmap
+            st.subheader("📊 Feature Correlation Heatmap")
+            fig, ax = plt.subplots(figsize=(12, 8))
+            sns.heatmap(df.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
+            st.pyplot(fig)
 
 # Model Evaluation
 elif option == "Model Evaluation":
@@ -67,57 +63,62 @@ elif option == "Model Evaluation":
 
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
-        # Preprocessing
-        drop_cols = ['RowNumber', 'CustomerId', 'Surname']
-        df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True)
+        
+        # Check the column names for debugging
+        st.write("Columns in the dataset:", df.columns)
 
-        # Check if 'Geography' and 'Gender' columns exist
-        if 'Geography' in df.columns and 'Gender' in df.columns:
-            le = LabelEncoder()
-            df['Geography'] = le.fit_transform(df['Geography'])
-            df['Gender'] = le.fit_transform(df['Gender'])
+        # Check if 'Exited' column exists
+        if 'Exited' not in df.columns:
+            st.error("'Exited' column is missing from the dataset.")
         else:
-            st.warning("'Geography' or 'Gender' columns are missing from the dataset.")
+            # Preprocessing
+            drop_cols = ['RowNumber', 'CustomerId', 'Surname']
+            df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True)
 
-        # Prepare features and target
-        X = df.drop('Exited', axis=1)
-        y = df['Exited']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
+            le = LabelEncoder()
+            for col in ['Geography', 'Gender']:
+                if col in df.columns:
+                    df[col] = le.fit_transform(df[col])
 
-        # Define models
-        models = {
-            'Random Forest': RandomForestClassifier(n_estimators=50, random_state=42),
-            'Logistic Regression': LogisticRegression(max_iter=500),
-            'XGBoost': XGBClassifier(eval_metric='logloss', n_estimators=50),
-            'SVM': SVC(probability=True, random_state=42),
-            'KNN': KNeighborsClassifier()
-        }
+            # Prepare features and target
+            X = df.drop('Exited', axis=1)
+            y = df['Exited']
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
 
-        # Model training and evaluation
-        model_results = {}
-        for name, model in models.items():
-            model.fit(X_train_scaled, y_train)
-            y_pred = model.predict(X_test_scaled)
-            accuracy = accuracy_score(y_test, y_pred)
-            f1 = f1_score(y_test, y_pred)
-            precision = precision_score(y_test, y_pred)
-            recall = recall_score(y_test, y_pred)
-            roc_auc = roc_auc_score(y_test, model.predict_proba(X_test_scaled)[:, 1])
-
-            model_results[name] = {
-                'Accuracy': accuracy,
-                'F1 Score': f1,
-                'Precision': precision,
-                'Recall': recall,
-                'ROC AUC': roc_auc
+            # Define models
+            models = {
+                'Random Forest': RandomForestClassifier(n_estimators=50, random_state=42),
+                'Logistic Regression': LogisticRegression(max_iter=500),
+                'XGBoost': XGBClassifier(eval_metric='logloss', n_estimators=50),
+                'SVM': SVC(probability=True, random_state=42),
+                'KNN': KNeighborsClassifier()
             }
 
-        # Display results in a dataframe
-        result_df = pd.DataFrame(model_results).T.round(3).sort_values(by="Accuracy", ascending=False)
-        st.dataframe(result_df)
+            # Model training and evaluation
+            model_results = {}
+            for name, model in models.items():
+                model.fit(X_train_scaled, y_train)
+                y_pred = model.predict(X_test_scaled)
+                accuracy = accuracy_score(y_test, y_pred)
+                f1 = f1_score(y_test, y_pred)
+                precision = precision_score(y_test, y_pred)
+                recall = recall_score(y_test, y_pred)
+                roc_auc = roc_auc_score(y_test, model.predict_proba(X_test_scaled)[:, 1])
+
+                model_results[name] = {
+                    'Accuracy': accuracy,
+                    'F1 Score': f1,
+                    'Precision': precision,
+                    'Recall': recall,
+                    'ROC AUC': roc_auc
+                }
+
+            # Display results in a dataframe
+            result_df = pd.DataFrame(model_results).T.round(3).sort_values(by="Accuracy", ascending=False)
+            st.dataframe(result_df)
 
 # SHAP Explainability
 elif option == "SHAP Explainability":
@@ -127,40 +128,45 @@ elif option == "SHAP Explainability":
 
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
-        # Preprocessing
-        drop_cols = ['RowNumber', 'CustomerId', 'Surname']
-        df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True)
 
-        # Check if 'Geography' and 'Gender' columns exist
-        if 'Geography' in df.columns and 'Gender' in df.columns:
-            le = LabelEncoder()
-            df['Geography'] = le.fit_transform(df['Geography'])
-            df['Gender'] = le.fit_transform(df['Gender'])
+        # Check the column names for debugging
+        st.write("Columns in the dataset:", df.columns)
+
+        # Check if 'Exited' column exists
+        if 'Exited' not in df.columns:
+            st.error("'Exited' column is missing from the dataset.")
         else:
-            st.warning("'Geography' or 'Gender' columns are missing from the dataset.")
+            # Preprocessing
+            drop_cols = ['RowNumber', 'CustomerId', 'Surname']
+            df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True)
 
-        # Prepare features and target
-        X = df.drop('Exited', axis=1)
-        y = df['Exited']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
+            le = LabelEncoder()
+            for col in ['Geography', 'Gender']:
+                if col in df.columns:
+                    df[col] = le.fit_transform(df[col])
 
-        # Train XGBoost model
-        xgb_model = XGBClassifier(eval_metric='logloss')
-        xgb_model.fit(X_train_scaled, y_train)
+            # Prepare features and target
+            X = df.drop('Exited', axis=1)
+            y = df['Exited']
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
 
-        # SHAP explainability for XGBoost
-        explainer = shap.Explainer(xgb_model, X_train_scaled)
-        shap_values = explainer(X_test_scaled[:100])
+            # Train XGBoost model
+            xgb_model = XGBClassifier(eval_metric='logloss')
+            xgb_model.fit(X_train_scaled, y_train)
 
-        # Beeswarm plot
-        fig = plt.figure(figsize=(10, 8))
-        shap.plots.beeswarm(shap_values, show=False)
-        st.pyplot(fig)
+            # SHAP explainability for XGBoost
+            explainer = shap.Explainer(xgb_model, X_train_scaled)
+            shap_values = explainer(X_test_scaled[:100])
 
-        # Bar plot
-        fig = plt.figure(figsize=(10, 6))
-        shap.plots.bar(shap_values, show=False)
-        st.pyplot(fig)
+            # Beeswarm plot
+            fig = plt.figure(figsize=(10, 8))
+            shap.plots.beeswarm(shap_values, show=False)
+            st.pyplot(fig)
+
+            # Bar plot
+            fig = plt.figure(figsize=(10, 6))
+            shap.plots.bar(shap_values, show=False)
+            st.pyplot(fig)

@@ -30,16 +30,19 @@ if option == "Upload Dataset":
         df = pd.read_csv(uploaded_file)
         st.subheader("Raw Data")
         st.write(df.head())
+        st.write(df.columns)  # Add this line to debug and view column names
 
         # Data Preprocessing
         drop_cols = ['RowNumber', 'CustomerId', 'Surname']
         df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True)
 
-        # Label Encoding for categorical features
-        le = LabelEncoder()
-        for col in ['Geography', 'Gender']:
-            if col in df.columns:
-                df[col] = le.fit_transform(df[col])
+        # Check if 'Geography' and 'Gender' columns exist
+        if 'Geography' in df.columns and 'Gender' in df.columns:
+            le = LabelEncoder()
+            df['Geography'] = le.fit_transform(df['Geography'])
+            df['Gender'] = le.fit_transform(df['Gender'])
+        else:
+            st.warning("'Geography' or 'Gender' columns are missing from the dataset.")
 
         # Correlation heatmap
         st.subheader("📊 Feature Correlation Heatmap")
@@ -68,9 +71,13 @@ elif option == "Model Evaluation":
         drop_cols = ['RowNumber', 'CustomerId', 'Surname']
         df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True)
 
-        le = LabelEncoder()
-        for col in ['Geography', 'Gender']:
-            df[col] = le.fit_transform(df[col])
+        # Check if 'Geography' and 'Gender' columns exist
+        if 'Geography' in df.columns and 'Gender' in df.columns:
+            le = LabelEncoder()
+            df['Geography'] = le.fit_transform(df['Geography'])
+            df['Gender'] = le.fit_transform(df['Gender'])
+        else:
+            st.warning("'Geography' or 'Gender' columns are missing from the dataset.")
 
         # Prepare features and target
         X = df.drop('Exited', axis=1)
@@ -124,9 +131,13 @@ elif option == "SHAP Explainability":
         drop_cols = ['RowNumber', 'CustomerId', 'Surname']
         df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True)
 
-        le = LabelEncoder()
-        for col in ['Geography', 'Gender']:
-            df[col] = le.fit_transform(df[col])
+        # Check if 'Geography' and 'Gender' columns exist
+        if 'Geography' in df.columns and 'Gender' in df.columns:
+            le = LabelEncoder()
+            df['Geography'] = le.fit_transform(df['Geography'])
+            df['Gender'] = le.fit_transform(df['Gender'])
+        else:
+            st.warning("'Geography' or 'Gender' columns are missing from the dataset.")
 
         # Prepare features and target
         X = df.drop('Exited', axis=1)

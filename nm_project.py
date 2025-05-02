@@ -13,11 +13,11 @@ from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 import shap
 
-# Set up Streamlit
+
 st.set_page_config(page_title="Customer Churn Predictor", layout="wide")
 st.title("📉 Customer Churn Prediction using Machine Learning")
 
-# Sidebar
+
 st.sidebar.header("🛠️ Application Menu")
 option = st.sidebar.selectbox("Select the section", ["Upload Dataset", "Model Evaluation", "SHAP Explainability"])
 
@@ -30,7 +30,7 @@ if uploaded_file is not None:
 else:
     st.sidebar.warning("Please upload a dataset to get started!")
 
-# Caching Functions
+
 @st.cache_resource
 def train_all_models(X_train_scaled, y_train):
     models = {
@@ -53,10 +53,10 @@ def train_xgboost_model(X_train_scaled, y_train):
 @st.cache_resource
 def compute_shap_values(_model, X_train_scaled, X_test_scaled):
     explainer = shap.TreeExplainer(_model)
-    shap_values = explainer.shap_values(X_test_scaled[:50])  # 50 rows
+    shap_values = explainer.shap_values(X_test_scaled[:50])  
     return shap_values
 
-# Upload Dataset Section
+
 if option == "Upload Dataset" and uploaded_file is not None:
     st.header("📊 Dataset Overview")
     st.subheader("Raw Data")
@@ -73,7 +73,7 @@ if option == "Upload Dataset" and uploaded_file is not None:
     sns.heatmap(df.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
     st.pyplot(fig)
 
-# Model Evaluation
+
 elif option == "Model Evaluation" and uploaded_file is not None:
     st.header("🏆 Model Performance Comparison")
 
@@ -110,7 +110,7 @@ elif option == "Model Evaluation" and uploaded_file is not None:
     result_df = pd.DataFrame(model_results).T.round(3).sort_values(by="Accuracy", ascending=False)
     st.dataframe(result_df)
 
-# SHAP Explainability
+
 elif option == "SHAP Explainability" and uploaded_file is not None:
     st.header("🔍 SHAP Explainability for XGBoost")
 

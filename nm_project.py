@@ -162,7 +162,7 @@ elif option == "Manual Prediction" and uploaded_file is not None:
 
     xgb_model = train_xgboost_model(X_scaled, y)
 
-    st.subheader("🔹 Manual Input for One Customer")
+    st.subheader("🔹 Manual Prediction For Customer")
     user_input = {}
     for feature in feature_names:
         if feature in ['Geography', 'Gender']:

@@ -17,9 +17,8 @@ import shap
 st.set_page_config(page_title="Customer Churn Predictor", layout="wide")
 st.title("📉 Customer Churn Prediction using Machine Learning")
 
-
 st.sidebar.header("🛠️ Application Menu")
-option = st.sidebar.selectbox("Select the section", ["Over View", "Model Evaluation", "SHAP Explainability"])
+option = st.sidebar.selectbox("Select the section", ["Upload Dataset", "Model Evaluation", "SHAP Explainability"])
 
 uploaded_file = st.sidebar.file_uploader("Upload your churn dataset (CSV)", type=["csv"])
 
@@ -29,7 +28,6 @@ if uploaded_file is not None:
     st.sidebar.write(df.head())
 else:
     st.sidebar.warning("Please upload a dataset to get started!")
-
 
 @st.cache_resource
 def train_all_models(X_train_scaled, y_train):
@@ -56,21 +54,34 @@ def compute_shap_values(_model, X_train_scaled, X_test_scaled):
     shap_values = explainer.shap_values(X_test_scaled[:50])  
     return shap_values
 
-
-if option == "Over View" and uploaded_file is not None:
+if option == "Upload Dataset" and uploaded_file is not None:
     st.header("📊 Dataset Overview")
     st.subheader("Raw Data")
     st.write(df.head())
 
-    df.drop(columns=[col for col in ['RowNumber', 'CustomerId', 'Surname'] if col in df.columns], inplace=True)
+    # Preprocessing
+    df_processed = df.copy()
+    df_processed.drop(columns=[col for col in ['RowNumber', 'CustomerId', 'Surname'] if col in df_processed.columns], inplace=True)
+
     le = LabelEncoder()
     for col in ['Geography', 'Gender']:
-        if col in df.columns:
-            df[col] = le.fit_transform(df[col])
+        if col in df_processed.columns:
+            df_processed[col] = le.fit_transform(df_processed[col])
+
+    st.subheader("✅ After Preprocessing (Encoded & Cleaned Data)")
+    st.write(df_processed.head())
+
+    if 'Exited' in df_processed.columns:
+        scaler = StandardScaler()
+        X = df_processed.drop('Exited', axis=1)
+        X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+
+        st.subheader("🔁 After Scaling (Standardized Features)")
+        st.write(X_scaled.head())
 
     st.subheader("📊 Feature Correlation Heatmap")
     fig, ax = plt.subplots(figsize=(12, 8))
-    sns.heatmap(df.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
+    sns.heatmap(df_processed.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
     st.pyplot(fig)
 
 

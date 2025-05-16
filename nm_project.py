@@ -22,7 +22,7 @@ option = st.sidebar.selectbox("Select the section", [
     "Preprocessing Overview",
     "Model Evaluation",
     "SHAP Explainability",
-    "Manual Prediction"  # Added manual prediction option
+    "Manual Prediction"
 ])
 
 uploaded_file = st.sidebar.file_uploader("Upload your dataset (CSV)", type=["csv"])
@@ -61,8 +61,8 @@ def train_xgboost_model(X_train_scaled, y_train):
 
 @st.cache_resource
 def compute_shap_values(_model, X_train_scaled, X_test_scaled):
-    explainer = shap.TreeExplainer(_model)
-    shap_values = explainer.shap_values(X_test_scaled[:50])  
+    explainer = shap.Explainer(_model)
+    shap_values = explainer(X_test_scaled[:50])
     return shap_values
 
 if option == "Data Overview" and uploaded_file is not None:
@@ -150,7 +150,7 @@ elif option == "SHAP Explainability" and uploaded_file is not None:
     st.pyplot(fig)
 
 elif option == "Manual Prediction" and uploaded_file is not None:
-    st.header("📝 Manual Customer Churn Prediction")
+    st.header("📝 Manual & Batch Customer Churn Prediction")
 
     df_cleaned = preprocess_data(df)
     feature_names = df_cleaned.drop('Exited', axis=1).columns
@@ -158,32 +158,47 @@ elif option == "Manual Prediction" and uploaded_file is not None:
     X = df_cleaned.drop('Exited', axis=1)
     y = df_cleaned['Exited']
     scaler = StandardScaler()
-    scaler.fit(X)
+    X_scaled = scaler.fit_transform(X)
 
-    xgb_model = train_xgboost_model(scaler.transform(X), y)
+    xgb_model = train_xgboost_model(X_scaled, y)
 
+    st.subheader("🔹 Manual Input for One Customer")
     user_input = {}
     for feature in feature_names:
         if feature in ['Geography', 'Gender']:
-            # Get original categories from raw df
             if feature == 'Geography':
                 options = sorted(df['Geography'].unique())
             else:
                 options = sorted(df['Gender'].unique())
-            choice = st.selectbox(f"Select {feature}", options)
+            choice = st.selectbox(f"Select {feature}", options, key=feature)
             label_map = {label: idx for idx, label in enumerate(options)}
             user_input[feature] = label_map[choice]
         else:
             min_val = float(df[feature].min())
             max_val = float(df[feature].max())
             default_val = float(df[feature].median())
-            user_input[feature] = st.number_input(f"Input {feature}", min_value=min_val, max_value=max_val, value=default_val)
+            user_input[feature] = st.number_input(f"Input {feature}", min_value=min_val, max_value=max_val, value=default_val, key=feature)
 
     input_df = pd.DataFrame([user_input])
     input_scaled = scaler.transform(input_df)
 
-    if st.button("Predict Churn"):
+    if st.button("Predict Churn (Single Customer)"):
         prediction = xgb_model.predict(input_scaled)[0]
         prediction_proba = xgb_model.predict_proba(input_scaled)[0][1]
         st.write(f"### Prediction: {'Customer will churn 🚪' if prediction == 1 else 'Customer will NOT churn ✅'}")
         st.write(f"### Prediction Probability of Churn: {prediction_proba:.2f}")
+
+    st.markdown("---")
+    st.subheader("🔸 Prediction for Customers from Dataset")
+
+    sample_df = X.sample(n=10, random_state=42)
+    sample_scaled = scaler.transform(sample_df)
+    sample_preds = xgb_model.predict(sample_scaled)
+    sample_probs = xgb_model.predict_proba(sample_scaled)[:, 1]
+
+    sample_results = sample_df.copy()
+    sample_results['Prediction'] = sample_preds
+    sample_results['Churn Probability'] = sample_probs.round(3)
+    sample_results['Prediction Label'] = sample_results['Prediction'].map({0: 'Not Churn', 1: 'Churn'})
+
+    st.dataframe(sample_results)

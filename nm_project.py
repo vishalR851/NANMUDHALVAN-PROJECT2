@@ -7,23 +7,32 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
+import shap
 
-# Title
-st.title("📉 Customer Churn Prediction using Machine Learning")
+st.title("📉 Customer Churn Prediction with SHAP Explainability")
 
-# Sidebar menu
 section = st.sidebar.selectbox(
     "Select the section",
     ["Over View", "Data Preprocessing", "Model Evaluation", "Manual Prediction"]
 )
 
-# Upload Dataset
 uploaded_file = st.sidebar.file_uploader("Upload your churn dataset (CSV)", type=["csv"])
 if uploaded_file:
     data = pd.read_csv(uploaded_file)
 else:
     st.sidebar.warning("Please upload a dataset to proceed.")
     st.stop()
+
+def preprocess_data(df):
+    df_prep = df.drop(["RowNumber", "CustomerId", "Surname"], axis=1)
+    le_gender = LabelEncoder()
+    df_prep["Gender"] = le_gender.fit_transform(df_prep["Gender"])
+    le_geo = LabelEncoder()
+    df_prep["Geography"] = le_geo.fit_transform(df_prep["Geography"])
+    scaler = StandardScaler()
+    features_to_scale = ["CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary"]
+    df_prep[features_to_scale] = scaler.fit_transform(df_prep[features_to_scale])
+    return df_prep, le_gender, le_geo, scaler, features_to_scale
 
 if section == "Over View":
     st.header("📊 Dataset Overview")
@@ -38,55 +47,23 @@ if section == "Over View":
 
 elif section == "Data Preprocessing":
     st.header("⚙️ Data Preprocessing")
+    data_prep, le_gender, le_geo, scaler, features_to_scale = preprocess_data(data)
 
-    # Drop unnecessary columns
-    data_prep = data.drop(["RowNumber", "CustomerId", "Surname"], axis=1)
-
-    # Encode categorical variables
-    le_gender = LabelEncoder()
-    data_prep["Gender"] = le_gender.fit_transform(data_prep["Gender"])
-
-    le_geo = LabelEncoder()
-    data_prep["Geography"] = le_geo.fit_transform(data_prep["Geography"])
-
-    st.subheader("Data after Encoding")
-    st.dataframe(data_prep.head())
-
-    # Scale numerical features
-    scaler = StandardScaler()
-    features_to_scale = ["CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary"]
-    data_prep[features_to_scale] = scaler.fit_transform(data_prep[features_to_scale])
-
-    st.subheader("Data after Scaling")
+    st.subheader("Data after Encoding & Scaling")
     st.dataframe(data_prep.head())
 
 elif section == "Model Evaluation":
-    st.header("📈 Model Training and Evaluation")
+    st.header("📈 Model Training, Evaluation and SHAP Explainability")
 
-    # Preprocessing (same as above)
-    data_prep = data.drop(["RowNumber", "CustomerId", "Surname"], axis=1)
-    le_gender = LabelEncoder()
-    data_prep["Gender"] = le_gender.fit_transform(data_prep["Gender"])
-    le_geo = LabelEncoder()
-    data_prep["Geography"] = le_geo.fit_transform(data_prep["Geography"])
-
-    scaler = StandardScaler()
-    features_to_scale = ["CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary"]
-    data_prep[features_to_scale] = scaler.fit_transform(data_prep[features_to_scale])
-
-    # Split dataset
+    data_prep, le_gender, le_geo, scaler, features_to_scale = preprocess_data(data)
     X = data_prep.drop("Exited", axis=1)
     y = data_prep["Exited"]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Train model
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     model = RandomForestClassifier(random_state=42)
     model.fit(X_train, y_train)
 
-    # Predictions and evaluation
     y_pred = model.predict(X_test)
-    report = classification_report(y_test, y_pred, output_dict=True)
-
     st.subheader("Classification Report")
     st.text(classification_report(y_test, y_pred))
 
@@ -96,27 +73,24 @@ elif section == "Model Evaluation":
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
     st.pyplot(fig)
 
+    st.subheader("SHAP Summary Plot (Feature Importance)")
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_test)
+    fig_shap, ax = plt.subplots()
+    shap.summary_plot(shap_values[1], X_test, plot_type="bar", show=False)
+    st.pyplot(fig_shap)
+
 elif section == "Manual Prediction":
-    st.header("🔮 Predict Customer Churn for New Input")
+    st.header("🔮 Predict Customer Churn for New Input with SHAP Explanation")
 
-    # We need the trained model and encoders from the Model Evaluation section
-    # So, re-run the preprocessing and model training here for simplicity
-    data_prep = data.drop(["RowNumber", "CustomerId", "Surname"], axis=1)
-    le_gender = LabelEncoder()
-    data_prep["Gender"] = le_gender.fit_transform(data_prep["Gender"])
-    le_geo = LabelEncoder()
-    data_prep["Geography"] = le_geo.fit_transform(data_prep["Geography"])
-
-    scaler = StandardScaler()
-    features_to_scale = ["CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary"]
-    data_prep[features_to_scale] = scaler.fit_transform(data_prep[features_to_scale])
-
+    data_prep, le_gender, le_geo, scaler, features_to_scale = preprocess_data(data)
     X = data_prep.drop("Exited", axis=1)
     y = data_prep["Exited"]
+
     model = RandomForestClassifier(random_state=42)
     model.fit(X, y)
+    explainer = shap.TreeExplainer(model)
 
-    # Input fields
     Geography = st.selectbox("Geography", ["France", "Spain", "Germany"])
     Gender = st.selectbox("Gender", ["Female", "Male"])
     CreditScore = st.number_input("Credit Score", min_value=300, max_value=850, value=650)
@@ -142,14 +116,24 @@ elif section == "Manual Prediction":
     }
     input_df = pd.DataFrame(input_dict)
 
-    # Encode input categorical data
     input_df["Gender"] = le_gender.transform(input_df["Gender"])
     input_df["Geography"] = le_geo.transform(input_df["Geography"])
-
-    # Scale numeric features
     input_df[features_to_scale] = scaler.transform(input_df[features_to_scale])
 
     if st.button("Predict Churn"):
-        pred = model.predict(input_df)
-        result = "Yes, the customer will churn." if pred[0] == 1 else "No, the customer will not churn."
-        st.success(result)
+        prediction = model.predict(input_df)
+        proba = model.predict_proba(input_df)
+
+        if prediction[0] == 1:
+            st.error(f"The customer is likely to churn with a probability of {proba[0][1]:.2f}.")
+        else:
+            st.success(f"The customer is unlikely to churn with a probability of {proba[0][0]:.2f}.")
+
+        # SHAP force plot for the single prediction
+        shap_values = explainer.shap_values(input_df)
+        st.subheader("SHAP Force Plot for the Prediction")
+        shap.initjs()
+        force_plot = shap.force_plot(
+            explainer.expected_value[1], shap_values[1], input_df, matplotlib=True
+        )
+        st.pyplot(force_plot)

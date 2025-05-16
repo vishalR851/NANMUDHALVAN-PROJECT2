@@ -1,149 +1,155 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier
-from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
-import shap
+from sklearn.metrics import classification_report, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Customer Churn Predictor", layout="wide")
+# Title
 st.title("📉 Customer Churn Prediction using Machine Learning")
 
-st.sidebar.header("🛠️ Application Menu")
-option = st.sidebar.selectbox("Select the section", [
-    "Data Overview",
-    "Preprocessing Overview",
-    "Model Evaluation",
-    "SHAP Explainability"
-])
+# Sidebar menu
+section = st.sidebar.selectbox(
+    "Select the section",
+    ["Over View", "Data Preprocessing", "Model Evaluation", "Manual Prediction"]
+)
 
-uploaded_file = st.sidebar.file_uploader("Upload your dataset (CSV)", type=["csv"])
-
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
+# Upload Dataset
+uploaded_file = st.sidebar.file_uploader("Upload your churn dataset (CSV)", type=["csv"])
+if uploaded_file:
+    data = pd.read_csv(uploaded_file)
 else:
-    st.sidebar.warning("Please upload a dataset to get started!")
+    st.sidebar.warning("Please upload a dataset to proceed.")
+    st.stop()
 
-def preprocess_data(df):
-    df_cleaned = df.drop(columns=[col for col in ['RowNumber', 'CustomerId', 'Surname'] if col in df.columns])
-    le = LabelEncoder()
-    for col in ['Geography', 'Gender']:
-        if col in df_cleaned.columns:
-            df_cleaned[col] = le.fit_transform(df_cleaned[col])
-    return df_cleaned
-
-@st.cache_resource
-def train_all_models(X_train_scaled, y_train):
-    models = {
-        'Random Forest': RandomForestClassifier(n_estimators=50, random_state=42),
-        'Logistic Regression': LogisticRegression(max_iter=500),
-        'XGBoost': XGBClassifier(eval_metric='logloss', n_estimators=50),
-        'SVM': SVC(probability=True, random_state=42),
-        'KNN': KNeighborsClassifier()
-    }
-    for model in models.values():
-        model.fit(X_train_scaled, y_train)
-    return models
-
-@st.cache_resource
-def train_xgboost_model(X_train_scaled, y_train):
-    model = XGBClassifier(eval_metric='logloss')
-    model.fit(X_train_scaled, y_train)
-    return model
-
-@st.cache_resource
-def compute_shap_values(_model, X_train_scaled, X_test_scaled):
-    explainer = shap.TreeExplainer(_model)
-    shap_values = explainer.shap_values(X_test_scaled[:50])  
-    return shap_values
-
-if option == "Data Overview" and uploaded_file is not None:
+if section == "Over View":
     st.header("📊 Dataset Overview")
+    st.subheader("Raw Data")
+    st.dataframe(data.head())
 
-    st.subheader("📂 Raw Data ")
-    st.write(df.head())
-
-    st.subheader("📊 Feature Correlation Heatmap")
-    df_cleaned = preprocess_data(df) 
-    fig, ax = plt.subplots(figsize=(12, 8))
-    sns.heatmap(df_cleaned.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
+    st.subheader("Feature Correlation Heatmap")
+    corr = data.corr()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.heatmap(corr, annot=True, cmap="coolwarm", ax=ax)
     st.pyplot(fig)
 
-elif option == "Preprocessing Overview" and uploaded_file is not None:
-    st.header("🧹 Data Preprocessing Overview")
+elif section == "Data Preprocessing":
+    st.header("⚙️ Data Preprocessing")
 
-    st.subheader("📂 Before Transformation (Raw Data)")
-    st.write(df.head())
+    # Drop unnecessary columns
+    data_prep = data.drop(["RowNumber", "CustomerId", "Surname"], axis=1)
 
-    df_cleaned = preprocess_data(df)
-    st.subheader("✅ After Preprocessing (Label Encoding + Column Removal)")
-    st.write(df_cleaned.head())
+    # Encode categorical variables
+    le_gender = LabelEncoder()
+    data_prep["Gender"] = le_gender.fit_transform(data_prep["Gender"])
 
-    feature_names = df_cleaned.drop('Exited', axis=1).columns
+    le_geo = LabelEncoder()
+    data_prep["Geography"] = le_geo.fit_transform(data_prep["Geography"])
+
+    st.subheader("Data after Encoding")
+    st.dataframe(data_prep.head())
+
+    # Scale numerical features
     scaler = StandardScaler()
-    X_scaled = pd.DataFrame(scaler.fit_transform(df_cleaned.drop('Exited', axis=1)), columns=feature_names)
+    features_to_scale = ["CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary"]
+    data_prep[features_to_scale] = scaler.fit_transform(data_prep[features_to_scale])
 
-    st.subheader("📐 After Scaling (StandardScaler Applied)")
-    st.write(X_scaled.head())
+    st.subheader("Data after Scaling")
+    st.dataframe(data_prep.head())
 
-elif option == "Model Evaluation" and uploaded_file is not None:
-    st.header("🏆 Model Performance Comparison")
+elif section == "Model Evaluation":
+    st.header("📈 Model Training and Evaluation")
 
-    df_cleaned = preprocess_data(df)
-    X = df_cleaned.drop('Exited', axis=1)
-    y = df_cleaned['Exited']
-    feature_names = X.columns
+    # Preprocessing (same as above)
+    data_prep = data.drop(["RowNumber", "CustomerId", "Surname"], axis=1)
+    le_gender = LabelEncoder()
+    data_prep["Gender"] = le_gender.fit_transform(data_prep["Gender"])
+    le_geo = LabelEncoder()
+    data_prep["Geography"] = le_geo.fit_transform(data_prep["Geography"])
+
+    scaler = StandardScaler()
+    features_to_scale = ["CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary"]
+    data_prep[features_to_scale] = scaler.fit_transform(data_prep[features_to_scale])
+
+    # Split dataset
+    X = data_prep.drop("Exited", axis=1)
+    y = data_prep["Exited"]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    scaler = StandardScaler()
-    X_train_scaled = pd.DataFrame(scaler.fit_transform(X_train), columns=feature_names)
-    X_test_scaled = pd.DataFrame(scaler.transform(X_test), columns=feature_names)
 
-    models = train_all_models(X_train_scaled, y_train)
-    model_results = {}
-    for name, model in models.items():
-        y_pred = model.predict(X_test_scaled)
-        accuracy = accuracy_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred)
-        recall = recall_score(y_test, y_pred)
-        roc_auc = roc_auc_score(y_test, model.predict_proba(X_test_scaled)[:, 1])
-        model_results[name] = {
-            'Accuracy': accuracy,
-            'F1 Score': f1,
-            'Precision': precision,
-            'Recall': recall,
-            'ROC AUC': roc_auc
-        }
+    # Train model
+    model = RandomForestClassifier(random_state=42)
+    model.fit(X_train, y_train)
 
-    result_df = pd.DataFrame(model_results).T.round(3).sort_values(by="Accuracy", ascending=False)
-    st.dataframe(result_df)
+    # Predictions and evaluation
+    y_pred = model.predict(X_test)
+    report = classification_report(y_test, y_pred, output_dict=True)
 
-elif option == "SHAP Explainability" and uploaded_file is not None:
-    st.header("🔍 SHAP Explainability for XGBoost")
+    st.subheader("Classification Report")
+    st.text(classification_report(y_test, y_pred))
 
-    df_cleaned = preprocess_data(df)
-    X = df_cleaned.drop('Exited', axis=1)
-    y = df_cleaned['Exited']
-    feature_names = X.columns
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    scaler = StandardScaler()
-    X_train_scaled = pd.DataFrame(scaler.fit_transform(X_train), columns=feature_names)
-    X_test_scaled = pd.DataFrame(scaler.transform(X_test), columns=feature_names)
-
-    xgb_model = train_xgboost_model(X_train_scaled, y_train)
-    shap_values = compute_shap_values(xgb_model, X_train_scaled, X_test_scaled)
-
-    fig = plt.figure(figsize=(10, 8))
-    shap.summary_plot(shap_values, features=X_test_scaled[:50], feature_names=feature_names, show=False)
+    st.subheader("Confusion Matrix")
+    cm = confusion_matrix(y_test, y_pred)
+    fig, ax = plt.subplots()
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
     st.pyplot(fig)
 
-    fig = plt.figure(figsize=(10, 6))
-    shap.summary_plot(shap_values, features=X_test_scaled[:50], feature_names=feature_names, plot_type="bar", show=False)
-    st.pyplot(fig)
+elif section == "Manual Prediction":
+    st.header("🔮 Predict Customer Churn for New Input")
+
+    # We need the trained model and encoders from the Model Evaluation section
+    # So, re-run the preprocessing and model training here for simplicity
+    data_prep = data.drop(["RowNumber", "CustomerId", "Surname"], axis=1)
+    le_gender = LabelEncoder()
+    data_prep["Gender"] = le_gender.fit_transform(data_prep["Gender"])
+    le_geo = LabelEncoder()
+    data_prep["Geography"] = le_geo.fit_transform(data_prep["Geography"])
+
+    scaler = StandardScaler()
+    features_to_scale = ["CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary"]
+    data_prep[features_to_scale] = scaler.fit_transform(data_prep[features_to_scale])
+
+    X = data_prep.drop("Exited", axis=1)
+    y = data_prep["Exited"]
+    model = RandomForestClassifier(random_state=42)
+    model.fit(X, y)
+
+    # Input fields
+    Geography = st.selectbox("Geography", ["France", "Spain", "Germany"])
+    Gender = st.selectbox("Gender", ["Female", "Male"])
+    CreditScore = st.number_input("Credit Score", min_value=300, max_value=850, value=650)
+    Age = st.number_input("Age", min_value=18, max_value=100, value=30)
+    Tenure = st.number_input("Tenure (years)", min_value=0, max_value=10, value=3)
+    Balance = st.number_input("Balance", min_value=0.0, value=10000.0)
+    NumOfProducts = st.selectbox("Number of Products", [1, 2, 3, 4])
+    HasCrCard = st.selectbox("Has Credit Card", [0, 1])
+    IsActiveMember = st.selectbox("Is Active Member", [0, 1])
+    EstimatedSalary = st.number_input("Estimated Salary", min_value=0.0, value=50000.0)
+
+    input_dict = {
+        "Geography": [Geography],
+        "Gender": [Gender],
+        "CreditScore": [CreditScore],
+        "Age": [Age],
+        "Tenure": [Tenure],
+        "Balance": [Balance],
+        "NumOfProducts": [NumOfProducts],
+        "HasCrCard": [HasCrCard],
+        "IsActiveMember": [IsActiveMember],
+        "EstimatedSalary": [EstimatedSalary]
+    }
+    input_df = pd.DataFrame(input_dict)
+
+    # Encode input categorical data
+    input_df["Gender"] = le_gender.transform(input_df["Gender"])
+    input_df["Geography"] = le_geo.transform(input_df["Geography"])
+
+    # Scale numeric features
+    input_df[features_to_scale] = scaler.transform(input_df[features_to_scale])
+
+    if st.button("Predict Churn"):
+        pred = model.predict(input_df)
+        result = "Yes, the customer will churn." if pred[0] == 1 else "No, the customer will not churn."
+        st.success(result)

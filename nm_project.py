@@ -64,38 +64,38 @@ def compute_shap_values(_model, X_train_scaled, X_test_scaled):
     shap_values = explainer.shap_values(X_test_scaled[:50])  
     return shap_values
 
+# ---- Section: Dataset Overview ----
 if option == "Upload Dataset" and uploaded_file is not None:
     st.header("📊 Dataset Overview")
-    st.subheader("📂 Before Transformation (Raw Data)")
+
+    st.subheader("📂 Raw Data (First 5 Rows)")
     st.write(df.head())
-    
-    df_cleaned = preprocess_data(df)
-    
-    st.subheader("✅ After Preprocessing (Label Encoding + Column Removal)")
-    st.write(df_cleaned.head())
-    
+
     st.subheader("📊 Feature Correlation Heatmap")
+    df_cleaned = preprocess_data(df)  # For correlation only
     fig, ax = plt.subplots(figsize=(12, 8))
     sns.heatmap(df_cleaned.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
     st.pyplot(fig)
 
+# ---- Section: Data Preprocessing ----
 elif option == "Preprocessing Details" and uploaded_file is not None:
     st.header("🛠️ Data Preprocessing Details")
 
     st.subheader("📂 Before Transformation (Raw Data)")
     st.write(df.head())
-    
+
     df_cleaned = preprocess_data(df)
     st.subheader("✅ After Preprocessing (Label Encoding + Column Removal)")
     st.write(df_cleaned.head())
-    
+
     feature_names = df_cleaned.drop('Exited', axis=1).columns
     scaler = StandardScaler()
     X_scaled = pd.DataFrame(scaler.fit_transform(df_cleaned.drop('Exited', axis=1)), columns=feature_names)
-    
+
     st.subheader("📐 After Scaling (StandardScaler Applied)")
     st.write(X_scaled.head())
 
+# ---- Section: Model Evaluation ----
 elif option == "Model Evaluation" and uploaded_file is not None:
     st.header("🏆 Model Performance Comparison")
 
@@ -128,6 +128,7 @@ elif option == "Model Evaluation" and uploaded_file is not None:
     result_df = pd.DataFrame(model_results).T.round(3).sort_values(by="Accuracy", ascending=False)
     st.dataframe(result_df)
 
+# ---- Section: SHAP Explainability ----
 elif option == "SHAP Explainability" and uploaded_file is not None:
     st.header("🔍 SHAP Explainability for XGBoost")
 

@@ -18,13 +18,13 @@ st.title("📉 Customer Churn Prediction using Machine Learning")
 
 st.sidebar.header("🛠️ Application Menu")
 option = st.sidebar.selectbox("Select the section", [
-    "Upload Dataset",
+    "Over View",
     "Preprocessing Details",
     "Model Evaluation",
     "SHAP Explainability"
 ])
 
-uploaded_file = st.sidebar.file_uploader("Upload your churn dataset (CSV)", type=["csv"])
+uploaded_file = st.sidebar.file_uploader("Upload your dataset (CSV)", type=["csv"])
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
@@ -65,7 +65,7 @@ def compute_shap_values(_model, X_train_scaled, X_test_scaled):
     return shap_values
 
 # ---- Section: Dataset Overview ----
-if option == "Upload Dataset" and uploaded_file is not None:
+if option == "Over View" and uploaded_file is not None:
     st.header("📊 Dataset Overview")
 
     st.subheader("📂 Raw Data (First 5 Rows)")

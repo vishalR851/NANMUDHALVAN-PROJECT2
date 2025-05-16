@@ -13,11 +13,9 @@ from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 import shap
 
-# Streamlit App Config
 st.set_page_config(page_title="Customer Churn Predictor", layout="wide")
 st.title("📉 Customer Churn Prediction using Machine Learning")
 
-# Sidebar Menu
 st.sidebar.header("🛠 Application Menu")
 option = st.sidebar.selectbox("Select the section", [
     "Data Overview",
@@ -35,7 +33,6 @@ if uploaded_file is not None:
 else:
     st.sidebar.warning("Please upload a dataset to get started!")
 
-# ----------------------- Data Preprocessing ------------------------
 def preprocess_data(df):
     df_cleaned = df.drop(columns=[col for col in ['RowNumber', 'CustomerId', 'Surname'] if col in df.columns])
     le = LabelEncoder()
@@ -44,7 +41,6 @@ def preprocess_data(df):
             df_cleaned[col] = le.fit_transform(df_cleaned[col])
     return df_cleaned
 
-# ----------------------- Model Training Functions ------------------------
 @st.cache_resource
 def train_all_models(X_train_scaled, y_train):
     models = {
@@ -83,7 +79,6 @@ if option == "Data Overview" and uploaded_file is not None:
     sns.heatmap(df_cleaned.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
     st.pyplot(fig)
 
-# ----------------------- Preprocessing Overview ------------------------
 elif option == "Preprocessing Overview" and uploaded_file is not None:
     st.header("🧹 Data Preprocessing Overview")
 
@@ -101,7 +96,6 @@ elif option == "Preprocessing Overview" and uploaded_file is not None:
     st.subheader("📐 After Scaling (StandardScaler Applied)")
     st.write(X_scaled.head())
 
-# ----------------------- Model Evaluation ------------------------
 elif option == "Model Evaluation" and uploaded_file is not None:
     st.header("🏆 Model Performance Comparison")
 
@@ -134,7 +128,6 @@ elif option == "Model Evaluation" and uploaded_file is not None:
     result_df = pd.DataFrame(model_results).T.round(3).sort_values(by="Accuracy", ascending=False)
     st.dataframe(result_df)
 
-# ----------------------- SHAP Explainability ------------------------
 elif option == "SHAP Explainability" and uploaded_file is not None:
     st.header("🔍 SHAP Explainability for XGBoost")
 
@@ -158,7 +151,6 @@ elif option == "SHAP Explainability" and uploaded_file is not None:
     shap.summary_plot(shap_values, features=X_test_scaled[:50], feature_names=feature_names, plot_type="bar", show=False)
     st.pyplot(fig)
 
-# ----------------------- Manual Prediction ------------------------
 elif option == "Manual Prediction" and uploaded_file is not None:
     st.header("📝 Manual Customer Churn Prediction")
 
@@ -193,7 +185,6 @@ elif option == "Manual Prediction" and uploaded_file is not None:
         st.write(f"### Prediction: {'Customer will churn 🚪' if prediction == 1 else 'Customer will NOT churn ✅'}")
         st.write(f"### Churn Probability: {prediction_proba:.2f}")
 
-# ----------------------- Dataset Prediction ------------------------
 elif option == "Dataset Prediction" and uploaded_file is not None:
     st.header("📁 Churn Prediction for Customers from Dataset")
 
@@ -216,5 +207,5 @@ elif option == "Dataset Prediction" and uploaded_file is not None:
     sample_results['Churn Probability'] = sample_probs.round(3)
     sample_results['Prediction Label'] = sample_results['Prediction'].map({0: 'Not Churn', 1: 'Churn'})
 
-    st.subheader("🔟 Predictions for 10 Random Customers")
+    st.subheader(" Predictions for 10 Random Customers")
     st.dataframe(sample_results)

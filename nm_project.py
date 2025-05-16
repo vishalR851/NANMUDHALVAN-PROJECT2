@@ -180,9 +180,8 @@ elif option == "Customer Prediction" and uploaded_file is not None:
 
     st.subheader(f"🔍 Top Factors Influencing Prediction for Customer Index: {selected_index}")
     
-    # Text-based explanation
     top_shap_vals = shap_values[sample_results.index.get_loc(selected_index)].values
-    top_feature_indices = np.argsort(np.abs(top_shap_vals))[-5:][::-1]  # top 5 abs values descending
+    top_feature_indices = np.argsort(np.abs(top_shap_vals))[-5:][::-1]  
     top_features = sample_df.columns[top_feature_indices]
     top_values = top_shap_vals[top_feature_indices]
 

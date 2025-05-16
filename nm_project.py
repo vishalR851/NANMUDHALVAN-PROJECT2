@@ -13,16 +13,19 @@ from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 import shap
 
+# Streamlit App Config
 st.set_page_config(page_title="Customer Churn Predictor", layout="wide")
 st.title("📉 Customer Churn Prediction using Machine Learning")
 
+# Sidebar Menu
 st.sidebar.header("🛠 Application Menu")
 option = st.sidebar.selectbox("Select the section", [
     "Data Overview",
     "Preprocessing Overview",
     "Model Evaluation",
     "SHAP Explainability",
-    "Manual Prediction"
+    "Manual Prediction",
+    "Dataset Prediction"
 ])
 
 uploaded_file = st.sidebar.file_uploader("Upload your dataset (CSV)", type=["csv"])
@@ -32,6 +35,7 @@ if uploaded_file is not None:
 else:
     st.sidebar.warning("Please upload a dataset to get started!")
 
+# ----------------------- Data Preprocessing ------------------------
 def preprocess_data(df):
     df_cleaned = df.drop(columns=[col for col in ['RowNumber', 'CustomerId', 'Surname'] if col in df.columns])
     le = LabelEncoder()
@@ -40,6 +44,7 @@ def preprocess_data(df):
             df_cleaned[col] = le.fit_transform(df_cleaned[col])
     return df_cleaned
 
+# ----------------------- Model Training Functions ------------------------
 @st.cache_resource
 def train_all_models(X_train_scaled, y_train):
     models = {
@@ -65,6 +70,7 @@ def compute_shap_values(_model, X_train_scaled, X_test_scaled):
     shap_values = explainer(X_test_scaled[:50])
     return shap_values
 
+# ----------------------- Data Overview ------------------------
 if option == "Data Overview" and uploaded_file is not None:
     st.header("📊 Dataset Overview")
 
@@ -77,6 +83,7 @@ if option == "Data Overview" and uploaded_file is not None:
     sns.heatmap(df_cleaned.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
     st.pyplot(fig)
 
+# ----------------------- Preprocessing Overview ------------------------
 elif option == "Preprocessing Overview" and uploaded_file is not None:
     st.header("🧹 Data Preprocessing Overview")
 
@@ -94,6 +101,7 @@ elif option == "Preprocessing Overview" and uploaded_file is not None:
     st.subheader("📐 After Scaling (StandardScaler Applied)")
     st.write(X_scaled.head())
 
+# ----------------------- Model Evaluation ------------------------
 elif option == "Model Evaluation" and uploaded_file is not None:
     st.header("🏆 Model Performance Comparison")
 
@@ -126,6 +134,7 @@ elif option == "Model Evaluation" and uploaded_file is not None:
     result_df = pd.DataFrame(model_results).T.round(3).sort_values(by="Accuracy", ascending=False)
     st.dataframe(result_df)
 
+# ----------------------- SHAP Explainability ------------------------
 elif option == "SHAP Explainability" and uploaded_file is not None:
     st.header("🔍 SHAP Explainability for XGBoost")
 
@@ -149,27 +158,23 @@ elif option == "SHAP Explainability" and uploaded_file is not None:
     shap.summary_plot(shap_values, features=X_test_scaled[:50], feature_names=feature_names, plot_type="bar", show=False)
     st.pyplot(fig)
 
+# ----------------------- Manual Prediction ------------------------
 elif option == "Manual Prediction" and uploaded_file is not None:
-    st.header("📝 Manual & Batch Customer Churn Prediction")
+    st.header("📝 Manual Customer Churn Prediction")
 
     df_cleaned = preprocess_data(df)
     feature_names = df_cleaned.drop('Exited', axis=1).columns
-
     X = df_cleaned.drop('Exited', axis=1)
     y = df_cleaned['Exited']
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-
     xgb_model = train_xgboost_model(X_scaled, y)
 
-    st.subheader("🔹 Manual Prediction For Customer")
+    st.subheader("🔹 Input Values for One Customer")
     user_input = {}
     for feature in feature_names:
         if feature in ['Geography', 'Gender']:
-            if feature == 'Geography':
-                options = sorted(df['Geography'].unique())
-            else:
-                options = sorted(df['Gender'].unique())
+            options = sorted(df[feature].unique())
             choice = st.selectbox(f"Select {feature}", options, key=feature)
             label_map = {label: idx for idx, label in enumerate(options)}
             user_input[feature] = label_map[choice]
@@ -186,10 +191,20 @@ elif option == "Manual Prediction" and uploaded_file is not None:
         prediction = xgb_model.predict(input_scaled)[0]
         prediction_proba = xgb_model.predict_proba(input_scaled)[0][1]
         st.write(f"### Prediction: {'Customer will churn 🚪' if prediction == 1 else 'Customer will NOT churn ✅'}")
-        st.write(f"### Prediction Probability of Churn: {prediction_proba:.2f}")
+        st.write(f"### Churn Probability: {prediction_proba:.2f}")
 
-    st.markdown("---")
-    st.subheader("🔸 Prediction for Customers from Dataset")
+# ----------------------- Dataset Prediction ------------------------
+elif option == "Dataset Prediction" and uploaded_file is not None:
+    st.header("📁 Churn Prediction for Customers from Dataset")
+
+    df_cleaned = preprocess_data(df)
+    X = df_cleaned.drop('Exited', axis=1)
+    y = df_cleaned['Exited']
+    feature_names = X.columns
+
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    xgb_model = train_xgboost_model(X_scaled, y)
 
     sample_df = X.sample(n=10, random_state=42)
     sample_scaled = scaler.transform(sample_df)
@@ -201,4 +216,5 @@ elif option == "Manual Prediction" and uploaded_file is not None:
     sample_results['Churn Probability'] = sample_probs.round(3)
     sample_results['Prediction Label'] = sample_results['Prediction'].map({0: 'Not Churn', 1: 'Churn'})
 
+    st.subheader("🔟 Predictions for 10 Random Customers")
     st.dataframe(sample_results)

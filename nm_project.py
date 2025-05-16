@@ -13,15 +13,18 @@ from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 import shap
 
-
+# Page configuration
 st.set_page_config(page_title="Customer Churn Predictor", layout="wide")
 st.title("📉 Customer Churn Prediction using Machine Learning")
 
+# Sidebar menu
 st.sidebar.header("🛠️ Application Menu")
-option = st.sidebar.selectbox("Select the section", ["Upload Dataset", "Model Evaluation", "SHAP Explainability"])
+option = st.sidebar.selectbox("Select the section", ["Over View", "Model Evaluation", "SHAP Explainability"])
 
+# File uploader
 uploaded_file = st.sidebar.file_uploader("Upload your churn dataset (CSV)", type=["csv"])
 
+# Show data preview
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.sidebar.subheader("Raw Data Preview")
@@ -29,6 +32,7 @@ if uploaded_file is not None:
 else:
     st.sidebar.warning("Please upload a dataset to get started!")
 
+# Cache model training
 @st.cache_resource
 def train_all_models(X_train_scaled, y_train):
     models = {
@@ -51,50 +55,56 @@ def train_xgboost_model(X_train_scaled, y_train):
 @st.cache_resource
 def compute_shap_values(_model, X_train_scaled, X_test_scaled):
     explainer = shap.TreeExplainer(_model)
-    shap_values = explainer.shap_values(X_test_scaled[:50])  
+    shap_values = explainer.shap_values(X_test_scaled[:50])
     return shap_values
 
+# Section: Over View
 if option == "Over View" and uploaded_file is not None:
     st.header("📊 Dataset Overview")
-    st.subheader("Raw Data")
+
+    st.subheader("📌 Raw Data")
     st.write(df.head())
 
     # Preprocessing
-    df_processed = df.copy()
-    df_processed.drop(columns=[col for col in ['RowNumber', 'CustomerId', 'Surname'] if col in df_processed.columns], inplace=True)
+    df_cleaned = df.copy()
+    df_cleaned.drop(columns=[col for col in ['RowNumber', 'CustomerId', 'Surname'] if col in df_cleaned.columns], inplace=True)
 
     le = LabelEncoder()
     for col in ['Geography', 'Gender']:
-        if col in df_processed.columns:
-            df_processed[col] = le.fit_transform(df_processed[col])
+        if col in df_cleaned.columns:
+            df_cleaned[col] = le.fit_transform(df_cleaned[col])
 
-    st.subheader("✅ After Preprocessing (Encoded & Cleaned Data)")
-    st.write(df_processed.head())
+    st.subheader("✅ After Preprocessing (Label Encoding + Column Removal)")
+    st.write(df_cleaned.head())
 
-    if 'Exited' in df_processed.columns:
-        scaler = StandardScaler()
-        X = df_processed.drop('Exited', axis=1)
-        X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+    # Scaling
+    X = df_cleaned.drop('Exited', axis=1)
+    y = df_cleaned['Exited']
+    scaler = StandardScaler()
+    X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
 
-        st.subheader("🔁 After Scaling (Standardized Features)")
-        st.write(X_scaled.head())
+    st.subheader("📐 After Scaling (StandardScaler Applied)")
+    st.write(X_scaled.head())
 
+    # Correlation heatmap
     st.subheader("📊 Feature Correlation Heatmap")
     fig, ax = plt.subplots(figsize=(12, 8))
-    sns.heatmap(df_processed.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
+    sns.heatmap(df_cleaned.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
     st.pyplot(fig)
 
-
+# Section: Model Evaluation
 elif option == "Model Evaluation" and uploaded_file is not None:
     st.header("🏆 Model Performance Comparison")
 
-    df.drop(columns=[col for col in ['RowNumber', 'CustomerId', 'Surname'] if col in df.columns], inplace=True)
+    df_cleaned = df.copy()
+    df_cleaned.drop(columns=[col for col in ['RowNumber', 'CustomerId', 'Surname'] if col in df_cleaned.columns], inplace=True)
+
     le = LabelEncoder()
     for col in ['Geography', 'Gender']:
-        df[col] = le.fit_transform(df[col])
+        df_cleaned[col] = le.fit_transform(df_cleaned[col])
 
-    X = df.drop('Exited', axis=1)
-    y = df['Exited']
+    X = df_cleaned.drop('Exited', axis=1)
+    y = df_cleaned['Exited']
     feature_names = X.columns
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     scaler = StandardScaler()
@@ -121,17 +131,19 @@ elif option == "Model Evaluation" and uploaded_file is not None:
     result_df = pd.DataFrame(model_results).T.round(3).sort_values(by="Accuracy", ascending=False)
     st.dataframe(result_df)
 
-
+# Section: SHAP Explainability
 elif option == "SHAP Explainability" and uploaded_file is not None:
     st.header("🔍 SHAP Explainability for XGBoost")
 
-    df.drop(columns=[col for col in ['RowNumber', 'CustomerId', 'Surname'] if col in df.columns], inplace=True)
+    df_cleaned = df.copy()
+    df_cleaned.drop(columns=[col for col in ['RowNumber', 'CustomerId', 'Surname'] if col in df_cleaned.columns], inplace=True)
+
     le = LabelEncoder()
     for col in ['Geography', 'Gender']:
-        df[col] = le.fit_transform(df[col])
+        df_cleaned[col] = le.fit_transform(df_cleaned[col])
 
-    X = df.drop('Exited', axis=1)
-    y = df['Exited']
+    X = df_cleaned.drop('Exited', axis=1)
+    y = df_cleaned['Exited']
     feature_names = X.columns
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     scaler = StandardScaler()
@@ -141,10 +153,12 @@ elif option == "SHAP Explainability" and uploaded_file is not None:
     xgb_model = train_xgboost_model(X_train_scaled, y_train)
     shap_values = compute_shap_values(xgb_model, X_train_scaled, X_test_scaled)
 
+    st.subheader("📉 SHAP Summary Plot")
     fig = plt.figure(figsize=(10, 8))
     shap.summary_plot(shap_values, features=X_test_scaled[:50], feature_names=feature_names, show=False)
     st.pyplot(fig)
 
+    st.subheader("📊 SHAP Bar Plot")
     fig = plt.figure(figsize=(10, 6))
     shap.summary_plot(shap_values, features=X_test_scaled[:50], feature_names=feature_names, plot_type="bar", show=False)
     st.pyplot(fig)

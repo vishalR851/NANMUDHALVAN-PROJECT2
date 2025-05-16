@@ -150,7 +150,7 @@ elif option == "SHAP Explainability" and uploaded_file is not None:
     st.pyplot(fig)
 
 elif option == "Customer Prediction" and uploaded_file is not None:
-    st.header("🔸 Customer Prediction (Random 10 Customers)")
+    st.header("🔸 Customer Prediction For Random Customers)")
 
     df_cleaned = preprocess_data(df)
     X = df_cleaned.drop('Exited', axis=1)

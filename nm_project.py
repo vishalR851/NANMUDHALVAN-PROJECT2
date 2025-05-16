@@ -19,7 +19,7 @@ st.title("📉 Customer Churn Prediction using Machine Learning")
 
 
 st.sidebar.header("🛠️ Application Menu")
-option = st.sidebar.selectbox("Select the section", ["Upload Dataset", "Model Evaluation", "SHAP Explainability"])
+option = st.sidebar.selectbox("Select the section", ["Over View", "Model Evaluation", "SHAP Explainability"])
 
 uploaded_file = st.sidebar.file_uploader("Upload your churn dataset (CSV)", type=["csv"])
 

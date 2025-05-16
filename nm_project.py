@@ -24,7 +24,7 @@ option = st.sidebar.selectbox("Select the section", [
     "SHAP Explainability"
 ])
 
-uploaded_file = st.sidebar.file_uploader("Upload your churn dataset (CSV)", type=["csv"])
+uploaded_file = st.sidebar.file_uploader("Upload your dataset (CSV)", type=["csv"])
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
@@ -64,20 +64,18 @@ def compute_shap_values(_model, X_train_scaled, X_test_scaled):
     shap_values = explainer.shap_values(X_test_scaled[:50])  
     return shap_values
 
-# ---- Section: Data Overview ----
 if option == "Data Overview" and uploaded_file is not None:
     st.header("📊 Dataset Overview")
 
-    st.subheader("📂 Raw Data (First 5 Rows)")
+    st.subheader("📂 Raw Data ")
     st.write(df.head())
 
     st.subheader("📊 Feature Correlation Heatmap")
-    df_cleaned = preprocess_data(df)  # For correlation only
+    df_cleaned = preprocess_data(df) 
     fig, ax = plt.subplots(figsize=(12, 8))
     sns.heatmap(df_cleaned.corr(), annot=True, cmap='coolwarm', linewidths=0.5, ax=ax)
     st.pyplot(fig)
 
-# ---- Section: Preprocessing Overview ----
 elif option == "Preprocessing Overview" and uploaded_file is not None:
     st.header("🧹 Data Preprocessing Overview")
 
@@ -95,7 +93,6 @@ elif option == "Preprocessing Overview" and uploaded_file is not None:
     st.subheader("📐 After Scaling (StandardScaler Applied)")
     st.write(X_scaled.head())
 
-# ---- Section: Model Evaluation ----
 elif option == "Model Evaluation" and uploaded_file is not None:
     st.header("🏆 Model Performance Comparison")
 
@@ -128,7 +125,6 @@ elif option == "Model Evaluation" and uploaded_file is not None:
     result_df = pd.DataFrame(model_results).T.round(3).sort_values(by="Accuracy", ascending=False)
     st.dataframe(result_df)
 
-# ---- Section: SHAP Explainability ----
 elif option == "SHAP Explainability" and uploaded_file is not None:
     st.header("🔍 SHAP Explainability for XGBoost")
 

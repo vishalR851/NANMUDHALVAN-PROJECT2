@@ -57,7 +57,7 @@ def compute_shap_values(_model, X_train_scaled, X_test_scaled):
     return shap_values
 
 
-if option == "Upload Dataset" and uploaded_file is not None:
+if option == "Over View" and uploaded_file is not None:
     st.header("📊 Dataset Overview")
     st.subheader("Raw Data")
     st.write(df.head())
